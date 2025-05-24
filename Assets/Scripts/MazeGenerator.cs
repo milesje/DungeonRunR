@@ -44,7 +44,7 @@ public class MazeGenerator : MonoBehaviour
             for (int z = 0; z < _mazeDepth; z++)
             {
                 _mazeGrid[x, z] = Instantiate(_mazeCellPrefab, new Vector3(x, 0, z), Quaternion.identity,transform);
-                //_mazeGrid[x, z].transform.localPosition = new Vector3(x, 0, z);
+                _mazeGrid[x, z].transform.localPosition = new Vector3(x, 0, z);
             }
         }
         GenerateMaze(null, _mazeGrid[0,0]);
