@@ -45,12 +45,13 @@ public class MazeGenerator : MonoBehaviour
             {
                 _mazeGrid[x, z] = Instantiate(_mazeCellPrefab, new Vector3(x, 0, z), Quaternion.identity,transform);
                 _mazeGrid[x, z].transform.localPosition = new Vector3(x, 0, z);
+                
             }
         }
         GenerateMaze(null, _mazeGrid[0,0]);
 
         // Instantiate the Player into the Maze...
-        var player = Instantiate(playerPrefab, new Vector3(_mazeGrid[0, 0].transform.localPosition.x, -8, _mazeGrid[0, 0].transform.localPosition.z), Quaternion.identity);
+        var player = Instantiate(playerPrefab, new Vector3(_mazeGrid[0, 0].transform.position.x, 1, _mazeGrid[0, 0].transform.position.z), Quaternion.identity);
     }
 
     private void GenerateMaze(MazeCell previousCell, MazeCell currentCell)
