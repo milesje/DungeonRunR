@@ -1,21 +1,18 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.InputSystem.Controls;
 
 public class MazeGenerator : MonoBehaviour
 {
     public static MazeGenerator Instance;
-    [SerializeField]
-    private MazeCell _mazeCellPrefab;
-
-    [SerializeField]
-    private GameObject playerPrefab;
-
-    [SerializeField]
-    private GameObject finishPrefab;
+    [SerializeField] private MazeCell _mazeCellPrefab;
+    [SerializeField] private GameObject playerPrefab;
+    [SerializeField]  private GameObject finishPrefab;
+    [SerializeField] private GameObject _startGameCanvas;
+    [SerializeField] private GameObject _uiCanvas;
+    [SerializeField] private GameObject _uiCamera;
+    [SerializeField] private GameObject _endScreenCanvas;
 
     [SerializeField]
     private int _mazeWidth;
@@ -28,49 +25,81 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField]
     private bool _useSeed;
 
-    private GameObject playerController;
+    private GameObject player;
+    private GameObject exit;
     private float elapsedTime = 0;
-    private bool isTimerRunning = true;
+    private bool isTimerRunning = false;
 
-    public GameObject endScreenCanvas;
     public TextMeshProUGUI timeText;
 
     private void Awake()
     {
         Instance = this;
-        endScreenCanvas.SetActive(false);
     }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        _startGameCanvas.SetActive(true);
+    }
+
+    public void EasyGame()
+    {
+        _mazeDepth = 8;
+        _mazeWidth = 8;
+        GameStart();
+    }
+
+    public void MediumGame()
+    {
+        _mazeDepth = 16;
+        _mazeWidth = 16;
+        GameStart();
+    }
+
+    public void HardGame()
+    {
+        _mazeDepth = 32;
+        _mazeWidth = 32;
+        GameStart();
+    }
+    public void GameStart()
+    {
+        _endScreenCanvas.SetActive(false);
+        _startGameCanvas.SetActive(false);
+        _uiCamera.SetActive(false);
+        _uiCanvas.SetActive(true);
         if (_useSeed)
         {
-            Random.InitState(_seed);
+            UnityEngine.Random.InitState(_seed);
         }
         else
         {
-            int randomSeed = Random.Range(1, int.MaxValue);
-            Random.InitState(randomSeed);
+            int randomSeed = UnityEngine.Random.Range(1, int.MaxValue);
+            UnityEngine.Random.InitState(randomSeed);
             Debug.Log(randomSeed);
         }
-           
+
         _mazeGrid = new MazeCell[_mazeWidth, _mazeDepth];
 
         for (int x = 0; x < _mazeWidth; x++)
         {
             for (int z = 0; z < _mazeDepth; z++)
             {
-                _mazeGrid[x, z] = Instantiate(_mazeCellPrefab, new Vector3(x, 0, z), Quaternion.identity,transform);
+                _mazeGrid[x, z] = Instantiate(_mazeCellPrefab, new Vector3(x, 0, z), Quaternion.identity, transform);
                 _mazeGrid[x, z].transform.localPosition = new Vector3(x, 0, z);
-                
+
             }
         }
-        GenerateMaze(null, _mazeGrid[0,0]);
+        GenerateMaze(null, _mazeGrid[0, 0]);
 
         // Instantiate the Player into the Maze...
-        playerController = Instantiate(playerPrefab, new Vector3(_mazeGrid[0, 0].transform.position.x, 1, _mazeGrid[0, 0].transform.position.z), Quaternion.identity);
-        var finish = Instantiate(finishPrefab, new Vector3(_mazeGrid[_mazeWidth - 1, _mazeDepth - 1].transform.position.x, 0.001f, _mazeGrid[_mazeWidth - 1, _mazeDepth - 1].transform.position.z), Quaternion.identity);
-
+        Debug.Log("lets create a player");
+        
+        player = Instantiate(playerPrefab, new Vector3(_mazeGrid[0, 0].transform.position.x, 1, _mazeGrid[0, 0].transform.position.z), Quaternion.identity);
+        
+        exit = Instantiate(finishPrefab, new Vector3(_mazeGrid[_mazeWidth - 1, _mazeDepth - 1].transform.position.x, 0.001f, _mazeGrid[_mazeWidth - 1, _mazeDepth - 1].transform.position.z), Quaternion.identity);
+        Time.timeScale = 1;
+        isTimerRunning = true;
     }
 
     private void Update()
@@ -81,6 +110,8 @@ public class MazeGenerator : MonoBehaviour
             UIManager.Instance.UpdateTimer(elapsedTime);
         }
     }
+
+
 
     private void GenerateMaze(MazeCell previousCell, MazeCell currentCell)
     {
@@ -97,12 +128,15 @@ public class MazeGenerator : MonoBehaviour
                 GenerateMaze(currentCell, nextCell);
             }
         }while(nextCell != null);
+        
+        //var finish = Instantiate(finishPrefab, new Vector3(currentCell.transform.position.x, 0.001f, currentCell.transform.position.z), Quaternion.identity);
+
     }
 
     private MazeCell GetNextUnvisitedCell(MazeCell currentCell)
     {
         var unvisitedCells = GetUnvisitedCells(currentCell);
-        return unvisitedCells.OrderBy(_ => Random.Range(5, 500)).FirstOrDefault();
+        return unvisitedCells.OrderBy(_ => UnityEngine.Random.Range(5, 500)).FirstOrDefault();
 
     }
 
@@ -189,25 +223,43 @@ public class MazeGenerator : MonoBehaviour
     {
         isTimerRunning = false;
         Time.timeScale = 0;
-        endScreenCanvas.SetActive(true);
-        playerController.GetComponentInChildren<StarterAssets.FirstPersonController>().enabled = false;
-        //playerController = null;
-        Cursor.visible = true;
-        // disable controller
-
+        _endScreenCanvas.SetActive(true);
+        // disable player controller
+        player.GetComponentInChildren<StarterAssets.FirstPersonController>().enabled = false;
         timeText.text = $"Time: {elapsedTime:F2}";
     }
 
     public void PlayAgain()
     {
-        Time.timeScale = 1;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = true;
-        playerController.GetComponentInChildren<StarterAssets.FirstPersonController>().enabled = true;
-        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        ResetGame();
+        GameStart();
     }
 
     public void QuitGame()
+    {
+        // Show the Start Game Canvas
+        ResetGame();
+        _endScreenCanvas.SetActive(false);
+    }
+
+    private void ResetGame()
+    {
+        _startGameCanvas.SetActive(true);
+        _uiCamera.SetActive(true);
+        Destroy(player);
+        Destroy(exit);
+        for (int x = 0; x < _mazeWidth; x++)
+        {
+            for (int z = 0; z < _mazeDepth; z++)
+            {
+                Destroy(_mazeGrid[x, z].gameObject);
+            }
+        } 
+        elapsedTime = 0f;
+        _mazeGrid = null;
+    }
+
+    public void ExitGame()
     {
 #if UNITY_STANDALONE
         Application.Quit();
