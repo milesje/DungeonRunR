@@ -1,16 +1,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem.Controls;
 
 public class MazeGenerator : MonoBehaviour
 {
+    public static MazeGenerator Instance;
     [SerializeField]
     private MazeCell _mazeCellPrefab;
 
     [SerializeField]
     private GameObject playerPrefab;
+
+    [SerializeField]
+    private GameObject finishPrefab;
 
     [SerializeField]
     private int _mazeWidth;
@@ -23,6 +28,18 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField]
     private bool _useSeed;
 
+    private GameObject playerController;
+    private float elapsedTime = 0;
+    private bool isTimerRunning = true;
+
+    public GameObject endScreenCanvas;
+    public TextMeshProUGUI timeText;
+
+    private void Awake()
+    {
+        Instance = this;
+        endScreenCanvas.SetActive(false);
+    }
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -51,7 +68,18 @@ public class MazeGenerator : MonoBehaviour
         GenerateMaze(null, _mazeGrid[0,0]);
 
         // Instantiate the Player into the Maze...
-        var player = Instantiate(playerPrefab, new Vector3(_mazeGrid[0, 0].transform.position.x, 1, _mazeGrid[0, 0].transform.position.z), Quaternion.identity);
+        playerController = Instantiate(playerPrefab, new Vector3(_mazeGrid[0, 0].transform.position.x, 1, _mazeGrid[0, 0].transform.position.z), Quaternion.identity);
+        var finish = Instantiate(finishPrefab, new Vector3(_mazeGrid[_mazeWidth - 1, _mazeDepth - 1].transform.position.x, 0.001f, _mazeGrid[_mazeWidth - 1, _mazeDepth - 1].transform.position.z), Quaternion.identity);
+
+    }
+
+    private void Update()
+    {
+        if (isTimerRunning)
+        {
+            elapsedTime += Time.deltaTime;
+            UIManager.Instance.UpdateTimer(elapsedTime);
+        }
     }
 
     private void GenerateMaze(MazeCell previousCell, MazeCell currentCell)
@@ -157,11 +185,35 @@ public class MazeGenerator : MonoBehaviour
         }
     }
 
-
-    // Update is called once per frame
-    void Update()
+    public void EndGame()
     {
+        isTimerRunning = false;
+        Time.timeScale = 0;
+        endScreenCanvas.SetActive(true);
+        playerController.GetComponentInChildren<StarterAssets.FirstPersonController>().enabled = false;
+        //playerController = null;
+        Cursor.visible = true;
+        // disable controller
 
+        timeText.text = $"Time: {elapsedTime:F2}";
     }
 
+    public void PlayAgain()
+    {
+        Time.timeScale = 1;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = true;
+        playerController.GetComponentInChildren<StarterAssets.FirstPersonController>().enabled = true;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+    }
+
+    public void QuitGame()
+    {
+#if UNITY_STANDALONE
+        Application.Quit();
+#endif
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+    }
 }
