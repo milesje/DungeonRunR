@@ -13,6 +13,7 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private GameObject _uiCanvas;
     [SerializeField] private GameObject _uiCamera;
     [SerializeField] private GameObject _endScreenCanvas;
+    [SerializeField] private GameObject _audioSource;
 
     [SerializeField]
     private int _mazeWidth;
